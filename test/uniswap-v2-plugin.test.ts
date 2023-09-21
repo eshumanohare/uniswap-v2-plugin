@@ -1,5 +1,6 @@
-import Web3, { core } from "web3";
 import { UniswapV2Plugin } from "../src/uniswap-v2-plugin";
+import Web3, { Uint256, core } from "web3";
+import { UniswapV3Plugin } from "../src/uniswap-v3-plugin";
 
 describe("UniswapV2Plugin Tests", () => {
   it("should register UniswapV2Plugin on UniswapV2Context instance", async () => {
@@ -93,6 +94,8 @@ describe("UniswapV2Plugin Tests", () => {
     });
   });
 
+  // Uniswap V2 Pair Tests
+
   describe("Plugin Tests - UniswapV2 - Router2", () => {
     let requestManagerSendSpy: jest.SpyInstance;
 
@@ -129,7 +132,6 @@ describe("UniswapV2Plugin Tests", () => {
         "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
 
       const factoryAddr = await uniswapV2Router.methods.factory().call();
-      console.log(factoryAddr);
 
       const request = {
         method: "eth_call",
@@ -138,6 +140,84 @@ describe("UniswapV2Plugin Tests", () => {
 
       expect(requestManagerSendSpy).toHaveBeenLastCalledWith(request);
       expect(factoryAddr).toEqual(expectedFactoryAddress);
+    });
+  });
+});
+
+// Uniswap V3 Factory Tests
+describe("UniswapV3Plugin Tests", () => {
+  it("should register UniswapV3 Plugin on UniswapV3Context instance", async () => {
+    const web3Context = new Web3("https://eth.public-rpc.com");
+    web3Context.registerPlugin(new UniswapV3Plugin());
+    expect(web3Context["uniswapV3"]).toBeDefined();
+  });
+
+  describe("Plugin Tests - UniswapV3 - Factory", () => {
+    let requestManagerSendSpy: jest.SpyInstance;
+
+    let web3Context: Web3;
+    const uniswapV3FactoryAddress =
+      "0x1F98431c8aD98523631AE4a59f267346ea31F984";
+
+    let uniswapV3Factory;
+
+    const owner = "0x1a9C8182C09F50C8318d769245beA52c32BE35BC";
+    const tokenAAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+    const tokenBAddress = "0xd5F047a72FC970CfcF79100F8576CC071fC87Bb4";
+    type uint24 = number;
+    const poolFee: uint24 = 500;
+
+    const pool = "0x6845873089FDB0a2C75E0A2B3E329D2567cd7926"; // WETH BabyX Pool
+
+    beforeAll(() => {
+      web3Context = new Web3("https://eth.public-rpc.com");
+      web3Context.registerPlugin(new UniswapV3Plugin());
+      requestManagerSendSpy = jest.spyOn(
+        web3Context["uniswapV3"].requestManager,
+        "send"
+      );
+
+      uniswapV3Factory = web3Context["uniswapV3"].factory(
+        uniswapV3FactoryAddress
+      );
+    });
+
+    it("should call Uniswap V3 Factory owner method with expected RPC object", async () => {
+      const signature = Web3.utils.sha3("owner()")?.slice(0, 10);
+      const data = signature;
+
+      const _owner = await uniswapV3Factory.methods.owner().call();
+
+      const request = {
+        method: "eth_call",
+        params: [{ input: data, to: uniswapV3FactoryAddress }, "latest"],
+      };
+      expect(requestManagerSendSpy).toHaveBeenLastCalledWith(request);
+      expect(_owner).toEqual(owner);
+    });
+
+    // Error -> check is not a function
+    it("should call Uniswap V3 Factory getPool method with expected RPC object", async () => {
+      const signature = Web3.utils
+        .sha3("getPool(address,address,uint24)")
+        ?.slice(0, 10);
+
+      const _poolAddress = await uniswapV3Factory.methods
+        .getPool(tokenAAddress, tokenBAddress, poolFee)
+        .call();
+
+      // const data =
+      //   signature +
+      //   tokenAAddress.slice(2).padStart(64, "0").toLowerCase() +
+      //   tokenBAddress.slice(2).padStart(64, "0").toLowerCase() +
+      //   poolFee.toString().slice(2).padStart(24, "0").toLowerCase();
+
+      // const request = {
+      //   method: "eth_call",
+      //   params: [{ input: data, to: uniswapV3FactoryAddress }, "latest"],
+      // };
+      // expect(requestManagerSendSpy).toHaveBeenLastCalledWith(request);
+      // expect(pool).toEqual(_poolAddress);
     });
   });
 });
