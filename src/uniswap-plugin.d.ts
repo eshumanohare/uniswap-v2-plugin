@@ -6,6 +6,6 @@ declare module "web3" {
     uniswapV2: UniswapV2Plugin;
   }
   interface UniswapV3Context {
-    uniswapV3: UniswapV2Plugin;
+    uniswapV3: UniswapV3Plugin;
   }
 }
