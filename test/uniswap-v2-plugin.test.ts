@@ -288,5 +288,28 @@ describe("\nUniswapV3Plugin Tests\n", () => {
       expect(requestManagerSendSpy).toHaveBeenLastCalledWith(request);
       expect(_owner).toEqual(owner);
     });
+
+    // getPool method
+    it("should call Uniswap V3 Factory owner method with expected RPC object", async () => {
+      const signature = Web3.utils
+        .sha3("getPool(address,address,uint24)")
+        ?.slice(0, 10);
+      const data =
+        signature +
+        tokenAAddress.slice(2).padStart(64, "0").toLowerCase() +
+        tokenBAddress.slice(2).padStart(64, "0").toLowerCase() +
+        poolFee;
+
+      const _poolAddress = await uniswapV3Factory.methods
+        .getPool(tokenAAddress, tokenBAddress, poolFee)
+        .call();
+
+      const request = {
+        method: "eth_call",
+        params: [{ input: data, to: uniswapV3FactoryAddress }, "latest"],
+      };
+      expect(requestManagerSendSpy).toHaveBeenLastCalledWith(request);
+      expect(_poolAddress).toEqual(pool);
+    });
   });
 });
